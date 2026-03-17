@@ -11,71 +11,7 @@ execute:
 
 # 🎲 Simulation Challenge - Starter Template
 
-:::: {.callout-important}
-## 📋 What You Need To Do
 
-- [ ] Fork [this repository](https://github.com/flyaflya/simulationChallenge) to create `simulationChallenge` in your GitHub
-- [ ] Clone locally and open in Cursor
-- [ ] Write your analysis in this `index.qmd`
-- [ ] Render to HTML (`quarto render` or Render button)
-- [ ] Push HTML to your repo and enable GitHub Pages
-- [ ] Share your site: `https://[your-username].github.io/simulationChallenge/`
-::::
-
-:::: {.callout-note}
-## 🐍 Python Environment Setup
-
-Before rendering, create a fresh virtual environment and install the required packages:
-
-1. Press `Ctrl+Shift+P` to open the Command Palette
-2. Type **"Python: Select Interpreter"** and select it
-3. Click **"+ Create Virtual Environment..."**
-4. Choose **Venv**
-5. Select your Python installation (e.g., Python 3.12)
-6. Wait for the environment to be created and activated
-
-Then open a terminal and install dependencies:
-
-**Windows:**
-```bash
-py -m pip install jupyter matplotlib pandas daft-pgm
-```
-
-**Mac:**
-```bash
-python3 -m pip install jupyter matplotlib pandas daft-pgm
-```
-
-This ensures you have everything needed for Quarto rendering and the DAG visualizations.
-::::
-
-:::: {.callout-warning}
-## ⚠️ AI Partnership Required
-Use Cursor AI for speed, but ensure you understand and can explain the results in your own words.  Verify cursor's calculations as investment simulation is tricky.
-::::
-
-:::: {.callout-important}
-## 📊 Grading Criteria
-
-- **Sections 1–4:** Required. These sections can earn up to **90%** of the grade.
-- **Sections 5–6:** Optional stretch. Strong, well-supported work here can bring your score up to **100%**.
-
-**Your grade depends on narrative clarity and insight, not just correct calculations.** Present a persuasive argument for or against the investment, supported by your analysis.
-::::
-
-:::: {.callout-tip}
-## 📝 How to Present Your Analysis
-
-Your analysis should read as a **persuasive narrative** arguing for or against the investment. Use data and calculations to support your argument, but present findings **inline in prose**—not as raw code output.
-
-- **Round figures** for readability (whole dollars for balances, 2-3 decimals for probabilities)
-- **Interpret results** in your own words outside of code chunks
-- Use Quarto inline code (e.g., `` `{{python}} round(ev, 0)` ``) or type values directly
-
-**Example:** Instead of printing `36000.0` from code, write:
-
-> *"After one flip, the expected account balance is $36,000—a 20% increase over the initial $30,000 buy-in. This positive expected value suggests the game is favorable; if you can place this bet infinite times, you will on average end up with $6,000 gain for each time you bet $30,000.  Note: this is an interpretation for a slighlty different game."*
-::::
 
 ## The Investment Game (Brief)
 
@@ -133,13 +69,30 @@ Explain whether the expected value of your account balance after one flip is gre
 
 ```{python}
 #| label: q1-expected-value-py
+#| echo: false
+buy_in = 30000
+p_heads = 0.5
+p_tails = 0.5
 
-# Compute the expected value after one coin flip.
-# Round monetary values to whole dollars; percentages to 1 decimal.
-# Present your findings OUTSIDE this chunk in narrative prose.
-# Example: "The expected value is $36,000, a 20.0% gain over the buy-in."
+balance_if_heads = buy_in * 1.5
+balance_if_tails = buy_in * 0.6
 
+ev_one_flip = round(0.5 * balance_if_heads + 0.5 * balance_if_tails, 0)
+gain_dollars = ev_one_flip - buy_in
+gain_pct = round((gain_dollars / buy_in) * 100, 1)
 ```
+
+```{python}
+#| echo: false
+ev_one_flip
+```
+
+After one flip, the investment has two equally likely outcomes: a 50% gain to $45,000 or a 40% loss to $18,000. Averaging these outcomes yields an expected value of $31,500, which is greater than the $30,000 buy in and represents a 5.0% increase in expected value.
+
+Based on this one period expected value calculation alone, the game is favorable, since the average outcome exceeds the initial investment. Therefore, I would recommend buying in on the basis of expected value alone. 
+
+However, this conclusion is limited to a single flip, longer year play risks and the possibility of substantial losses will need to be evaluated before making a final decision
+
 
 ### 2) Single Simulation Over Time (Narrative + Plot)
 
@@ -148,15 +101,49 @@ Narrate and visualize what happens to your account balance over the course of on
 ```{python}
 #| label: q2-single-sim-py
 #| fig-cap: "Single simulation path of account balance"
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Simulate one path from $30,000 over N periods.
-# Use matplotlib (Object Oriented style) for the time-series plot.
-# Set a random seed for reproducibility.
-# Round final balance to whole dollars in your narrative.
-# Present your interpretation OUTSIDE this chunk—describe the trajectory
-# and whether you would be satisfied with this outcome.
+# Set random seed for reproducibility
+np.random.seed(42)
 
+# Parameters: buy-in and number of periods (e.g., years until age 75)
+buy_in = 30_000
+N = 50
+# Coin flip: 1 = heads (+50%), 0 = tails (-40%)
+multipliers = np.array([1.5, 0.6])
+
+# Simulate one path: at each period, flip fair coin and apply multiplier
+flips = np.random.randint(0, 2, size=N)
+path_multipliers = multipliers[flips]
+# Wealth path: W_t = W_{t-1} * multiplier_t
+balance_path = np.zeros(N + 1)
+balance_path[0] = buy_in
+for t in range(1, N + 1):
+    balance_path[t] = balance_path[t - 1] * path_multipliers[t - 1]
+
+# Time index for plotting (0 to N)
+years = np.arange(N + 1)
+final_balance = round(balance_path[-1], 0)
+
+# Plot: Object-Oriented matplotlib (figure and axes)
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(years, balance_path, color="steelblue", linewidth=1.5)
+ax.axhline(y=buy_in, color="gray", linestyle="--", alpha=0.7, label=f"Buy-in ${buy_in:,}")
+ax.set_xlabel("Year")
+ax.set_ylabel("Account balance ($)")
+ax.set_title("Single simulation: account balance over time")
+ax.legend(loc="best")
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 ```
+
+This simulation above shows one possible trajectory of the account balance over a 50 year period. Each year’s change reflects the outcome of a fair coin flip: a head increases wealth by 50 percent, while a tail reduces it by 40 percent. As a result, the path moves unevenly, rising sharply during stretches of heads and falling quickly when several tails occur in succession. The dashed line marks the $30,000 buy in, making it easy to see when the account is above or below the initial investment. 
+
+Based on this run, the account ends at about $3,000, far below the initial buy in, which is $30,000, so I would not be satisfied with this outcome. The path spends long periods below the starting value, and the final balance represents a substantial loss. This result shows how sensitive the game is to sequences of unfavorable flips, especially when losses compound over many years.
+
 
 ### 3) 100 Simulations: Distribution of Final Balances
 
@@ -165,15 +152,67 @@ Describe the distribution of final account balances across 100 simulations. Repo
 ```{python}
 #| label: q3-dist-100-py
 #| fig-cap: "Distribution of final balances across 100 simulations"
+#| echo: false
+import numpy as np
+import matplotlib.pyplot as plt
 
-# Run 100 simulations and plot a histogram of final balances.
-# Add a vertical line at $30,000 for reference.
-# Compute mean, median, and P(final > $30,000).
-# Round balances to whole dollars; probabilities to 2-3 decimals.
-# Present these statistics OUTSIDE this chunk in narrative form.
-# Example: "The median outcome was $12,345, well below the initial investment."
+# Reproducibility and parameters (same game as Task 2)
+np.random.seed(123)
+buy_in = 30_000
+N = 50
+n_sims = 100
+multipliers = np.array([1.5, 0.6])
 
+# Run 100 simulations: each path has N coin flips, record final balance
+final_balances = np.zeros(n_sims)
+for i in range(n_sims):
+    flips = np.random.randint(0, 2, size=N)
+    path_mult = multipliers[flips]
+    balance = buy_in
+    for t in range(N):
+        balance = balance * path_mult[t]
+    final_balances[i] = balance
+
+# Summary statistics (rounded: dollars to whole, probability to 2-3 decimals)
+mean_final = round(final_balances.mean(), 0)
+median_final = round(np.median(final_balances), 0)
+prob_above_30k = (final_balances > buy_in).mean()
+prob_above_30k = round(prob_above_30k, 3)
+
+# Print results so you can type them manually in your narrative
+print("Mean final balance:", mean_final)
+print("Median final balance:", median_final)
+print("Probability final > 30,000:", prob_above_30k)
+
+# Horizontal histogram...
+x_max = np.percentile(final_balances, 98)
+n_bins = 20
+bins = np.linspace(0, x_max, n_bins + 1)
+counts, _ = np.histogram(final_balances, bins=bins)
+bin_centers = (bins[:-1] + bins[1:]) / 2
+bin_width = bins[1] - bins[0]
+
+fig, ax = plt.subplots(figsize=(6, 5))
+ax.barh(bin_centers, counts, height=bin_width * 0.85, align="center",
+        color="steelblue", edgecolor="white", alpha=0.8)
+ax.axhline(y=buy_in, color="red", linestyle="--", linewidth=1.5,
+           label=f"Buy-in ${buy_in:,}")
+ax.set_ylim(0, x_max)
+ax.set_xlabel("Count")
+ax.set_ylabel("Final balance ($)")
+ax.set_title("Distribution of final balances (100 simulations)")
+ax.legend(loc="lower right")
+ax.grid(True, alpha=0.3, axis="x")
+plt.tight_layout()
+plt.show()
 ```
+
+Across 100 simulated 50 year paths, the distribution of final account balances is extremely right skewed. Most outcomes fall far below the initial $30,000 buy in, while a small number of unusually successful paths pull the mean upward. The mean final balance is $248,234, but the median is only $5,384, indicating that the typical outcome is much lower than the average. The probability of finishing above the initial investment is 0.32, meaning that only about 32 percent of the simulations end with a profit.
+
+This pattern reflects the multiplicative nature of the game over a long horizon: long sequences of tails can drive the balance down quickly, while the rare sequences of many heads are needed to generate very large final values.
+
+Given these results, I would not be satisfied with the likely outcomes. The chance of ending above $30,000 is low, and the median path results in a substantial loss. Although a few extreme successes raise the mean, they are rare, and most investors would experience outcomes well below the buy in.
+
 
 ### 4) Probability Balance > $30,000 at Age 75 (Original Game)
 
@@ -181,13 +220,67 @@ Report the probability that your final balance exceeds $30,000. Interpret what t
 
 ```{python}
 #| label: q4-prob-original-py
-
+#| echo: false
 # Using the 100 simulations, estimate P(final > $30,000).
 # Round the probability to 2-3 decimal places.
 # Present this result OUTSIDE this chunk in narrative form.
 # Interpret what this probability means for your investment decision.
 
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Re-create the same game setup used in Task 3
+np.random.seed(123)
+buy_in = 30_000
+N = 50
+n_sims = 100
+multipliers = np.array([1.5, 0.6])
+
+# Run 100 simulations and record the final balance of each path
+final_balances_q4 = np.zeros(n_sims)
+for i in range(n_sims):
+    flips = np.random.randint(0, 2, size=N)
+    path_mult = multipliers[flips]
+    balance = buy_in
+    for t in range(N):
+        balance = balance * path_mult[t]
+    final_balances_q4[i] = balance
+
+# Estimate probability that final balance exceeds $30,000
+prob_above_30k_q4 = (final_balances_q4 > buy_in).mean()
+prob_above_30k_q4 = round(prob_above_30k_q4, 3)
+
+# Simple, readable visualization: probability of ending above vs at/below $30,000
+categories = ["> $30,000", "≤ $30,000"]
+probs = [prob_above_30k_q4, 1 - prob_above_30k_q4]
+
+fig, ax = plt.subplots(figsize=(5, 3))
+bars = ax.bar(categories, probs, color=["seagreen", "salmon"], alpha=0.8)
+ax.set_ylim(0, 1)
+ax.set_ylabel("Probability")
+ax.set_title("Estimated probability of final balance relative to $30,000")
+ax.grid(True, axis="y", alpha=0.3)
+
+# Add probability labels on top of each bar for clarity
+for bar, p in zip(bars, probs):
+    ax.text(
+        bar.get_x() + bar.get_width() / 2,
+        p + 0.02,
+        f"{p:.2f}",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+    )
+
+plt.tight_layout()
+plt.show()
+
 ```
+
+Using the 100 simulated 50 year paths, the estimated probability that the final balance exceeds $30,000 is 0.32. The remaining 68% of paths finish at or below the initial buy in, indicating that losses are much more common than gains over this long horizon.
+
+This probability reinforces the conclusion from earlier sections. Even though the one period expected value of the game is positive, the long run compounding process is dominated by sequences of losses, and most investors would end up with less than their initial $30,000. 
+
 
 ### 5) Modified Strategy (Bet Exactly 25% Each Round)
 
@@ -196,41 +289,104 @@ Instead of having the full balance at risk with each coin flip, assume only 25% 
 ```{python}
 #| label: q5-modified-25pct-py
 #| fig-cap: "Modified strategy distribution (bet 25% each round)"
+#| echo: false
 
-# Implement the modified game where only 25% of your balance is at risk each flip.
-# Run 100 simulations and plot the distribution of final balances.
-# Estimate P(final > $30,000) and compare to the original strategy.
-# Visually compare outcome distributions of both strategies.
-# Round balances to whole dollars; probabilities to 2-3 decimals.
-# Present your comparison and recommendation OUTSIDE this chunk in narrative form.
+import numpy as np
+import matplotlib.pyplot as plt
+
+np.random.seed(2026)
+buy_in = 30_000
+N = 50
+n_sims = 100
+
+mult_original = np.array([1.5, 0.6])
+mult_modified = np.array([1.125, 0.9])
+
+def simulate_final_balances(buy_in, multipliers, n_sims, N):
+    flips = np.random.randint(0, 2, size=(n_sims, N))
+    path_mult = multipliers[flips]
+    return buy_in * path_mult.prod(axis=1)
+
+final_original = simulate_final_balances(buy_in, mult_original, n_sims, N)
+final_modified = simulate_final_balances(buy_in, mult_modified, n_sims, N)
+
+prob_profit_original = round((final_original > buy_in).mean(), 3)
+prob_profit_modified = round((final_modified > buy_in).mean(), 3)
+
+median_original = round(np.median(final_original), 0)
+median_modified = round(np.median(final_modified), 0)
+
+p98_original = round(np.percentile(final_original, 98), 0)
+p98_modified = round(np.percentile(final_modified, 98), 0)
+
+# PRINT RESULTS FOR NARRATIVE
+print("Original strategy:")
+print("  Probability final > 30,000:", prob_profit_original)
+print("  Median final balance:", median_original)
+print("  98th percentile:", p98_original)
+
+print("\n25% strategy:")
+print("  Probability final > 30,000:", prob_profit_modified)
+print("  Median final balance:", median_modified)
+print("  98th percentile:", p98_modified)
+
+# ---- Visualization (unchanged) ----
+def ecdf(x):
+    x_sorted = np.sort(x)
+    y = np.arange(1, len(x_sorted) + 1) / len(x_sorted)
+    return x_sorted, y
+
+x_o, y_o = ecdf(final_original)
+x_m, y_m = ecdf(final_modified)
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+
+ax = axes[0]
+ax.plot(x_o, y_o, color="slateblue", linewidth=2, label="Original (100% at risk)")
+ax.plot(x_m, y_m, color="seagreen", linewidth=2, label="Modified (25% at risk)")
+ax.axvline(buy_in, color="gray", linestyle="--", linewidth=1.2)
+ax.set_xscale("log")
+ax.set_xlabel("Final balance ($, log scale)")
+ax.set_ylabel("Cumulative probability")
+ax.set_title("Final-balance ECDF (100 simulations)")
+ax.grid(True, alpha=0.25)
+ax.legend(loc="lower right")
+
+ax = axes[1]
+labels = ["Original", "25% strategy"]
+probs = [prob_profit_original, prob_profit_modified]
+bars = ax.bar(labels, probs, color=["slateblue", "seagreen"], alpha=0.85)
+ax.set_ylim(0, 1)
+ax.set_ylabel("P(final > $30,000)")
+ax.set_title("Chance of finishing above buy-in")
+ax.grid(True, axis="y", alpha=0.25)
+for bar, p in zip(bars, probs):
+    ax.text(bar.get_x() + bar.get_width()/2, p + 0.02, f"{p:.3f}", ha="center", va="bottom")
+
+plt.tight_layout()
+plt.show()
 
 ```
+
+## Understanding the Charts
+The ECDF plot shows that the 25% strategy is much more stable than the original game. The green line is farther to the right and steeper, which means most outcomes are higher and less spread out. The blue line is flatter and stretches farther left and right, showing that the original strategy has much bigger losses for most paths but also a few extremely large gains. 
+
+The bar chart on the right confirms this pattern: the 25% strategy has a higher chance of finishing above the $30,000 buy in, while the original game is more like a lottery with rare but very large wins.
+
+## Conclusion
+Comparing the two strategies highlights a clear trade off between risk and upside. In the original game, the entire balance is at risk based on the coin flip. If you get tails, your balance drops by 40%. This makes the strategy extremely volatile. In my simulation, the median final balance for the original strategy was only $2,154, and the probability of finishing above the $30,000 buy in was just 0.26. Although the original game occasionally produces enormous outcomes (the 98th percentile was about $3,384,864), these results are extremely rare and do not represent what most people will experience.
+
+The 25% strategy is much more stable. Only a quarter of the balance is at risk each year, so a tails result only reduces the total balance by 10%. This makes the losses much easier to handle. In my results, the median final balance increased to $32,741, and the probability of ending above $30,000 rose to 0.56. This modified strategy still allows for growth, but its extreme upside is smaller (the 98th percentile was about $156,900). 
+
+Overall, I would choose the 25% strategy. It is substantially less risky and makes it more likely to end with more than the initial $30,000. While the original game offers higher lottery like upside, most investors would care more about the steady outcomes , and try to avoid those severe losses.
+
 
 ### 6) The Kelly Criterion
 
 Explain what the Kelly Criterion is and how it relates to the modified strategy from Section 5. Does the Kelly Criterion support your recommendation?
 
+（1）The Kelly Criterion is a rule that tells you what fraction of your money you should bet in a repeated game in order to maximize long run growth. It does not try to avoid all risk, but it tries to choose a betting size that is aggressive enough to grow wealth while still avoiding the chance of being wiped out.
 
-## Professional Presentation
+（2）In this coin flip game, the Kelly fraction is much smaller than 100% because losing 40% on a tails outcome is very damaging. The optimal Kelly bet for this game is roughly in the range of 20–30%, which is close to the modified strategy in Section 5 where only 25% of the balance is at risk each year.
 
-- **Clear narrative:** tell the story succinctly (aim for a 1–5 minute read)
-- **Focus on insights:** risk profiles, counter-intuitive results, practical implications
-- **Professional style:** concise writing, clean visuals, hide code where appropriate (`echo: false`)
-- **Human interpretation:** explain what results mean for real decisions
-
-## Submission Checklist ✅
-
-- [ ] Quarto document written with narrative and results
-- [ ] Rendered to HTML successfully
-- [ ] Repository `simulationChallenge` created on GitHub
-- [ ] HTML committed and pushed
-- [ ] GitHub Pages enabled (Deploy from a branch → main → /(root))
-- [ ] Site accessible at `https://[your-username].github.io/simulationChallenge/`
-
-## Tips
-
-- Set random seeds for reproducibility
-- Use object-oriented plotting with `matplotlib`
-- Keep figures readable and labeled; prefer professional styling
-- Commit early and often; render locally before pushing
-
+（3）Because of this, the Kelly Criterion supports the 25% strategy. The original game, which risks the entire balance every year, is far above the Kelly level and is too risky for long term growth. The 25% strategy is much closer to the Kelly recommendation and leads to more stable outcomes and a higher chance of finishing above the initial $30,000.
